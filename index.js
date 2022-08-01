@@ -12,3 +12,5 @@ const inquirer = require('inquirer');
 
 // team array
 const teamArray = []; 
+
+addManager()

@@ -147,9 +147,25 @@ const addEmployee = () => {
             type: 'input',
             name: 'school',
             messsage: "Please enter the intern's school",
+            when: (input) => input.role === "Intern",
+            validate: nameInput => {
+                if (nameInput) {
+                    return true;
+                } else {
+                    console.log ("Please enter the intern's school.")
+                }
+            }
+        },
+        {
+            type: 'confirm',
+            name: 'confirmAddEmployee',
+            message: 'Would you like to add more team members?',
+            default: false
         }
-
-
     ])
+    .then(employeeData => {
+        // data for employee types
+    } 
+        )
 }
 addManager();

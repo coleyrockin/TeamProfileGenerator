@@ -1,17 +1,12 @@
-// link to page creation
+// Link to creation page
 const generateHTML = require('./src/generateHTML');
 
-// team profiles
+// Team profiles/Node modules/team array
 const Manager = require('./lib/Manager');
 const Engineer = require('./lib/Engineer');
 const Intern = require('./lib/Intern'); 
-
-// node modules 
 const fs = require('fs'); 
 const inquirer = require('inquirer');
-const { writeFile } = require('fs/promises');
-
-// team array
 const teamArray = []; 
 
 // start of manager prompts 
@@ -147,13 +142,13 @@ const addEmployee = () => {
         {
             type: 'input',
             name: 'school',
-            messsage: "Please enter the intern's school",
+            messsage: "Please enter the intern's School",
             when: (input) => input.role === "Intern",
             validate: nameInput => {
                 if (nameInput) {
                     return true;
                 } else {
-                    console.log ("Please enter the intern's school.")
+                    console.log ("Please enter the intern's School.")
                 }
             }
         },

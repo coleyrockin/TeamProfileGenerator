@@ -9,6 +9,7 @@ const Intern = require('./lib/Intern');
 // node modules 
 const fs = require('fs'); 
 const inquirer = require('inquirer');
+const { writeFile } = require('fs/promises');
 
 // team array
 const teamArray = []; 
@@ -188,4 +189,11 @@ const addEmployee = () => {
 
     })
 };
-addManager();
+addManager()
+    .then(addEmployee)
+    .then(teamArray => {
+        return generateHTML(teamArray);
+    })
+    .then(pageHTML => {
+        return writeFile(pageHTML);
+    });

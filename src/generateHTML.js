@@ -15,3 +15,7 @@ const generateManager = function (manager) {
     </div>
     `;
 }
+
+
+// export to index
+module.exports = generateHTML;

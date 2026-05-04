@@ -1,3 +1,27 @@
+const htmlEntities = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+};
+
+const escapeHTML = value => {
+    return String(value ?? '').replace(/[&<>"']/g, character => htmlEntities[character]);
+};
+
+const githubProfileUrl = username => {
+    return `https://github.com/${encodeURIComponent(String(username ?? '').trim())}`;
+};
+
+const mailtoUrl = email => {
+    return `mailto:${encodeURIComponent(String(email ?? '').trim())}`;
+};
+
+const renderEmail = email => {
+    return `<a href="${escapeHTML(mailtoUrl(email)}">${escapeHTML(email)}</a>`;
+};
+
 const generateTeamPage = function (employeeCards) {   
     return`
     <!DOCTYPE html>
@@ -6,10 +30,6 @@ const generateTeamPage = function (employeeCards) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Team Profile</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css">
-        <link href="https://fonts.googleapis.com/css?family=Public+Sans:300i,300,500&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
@@ -26,28 +46,24 @@ const generateTeamPage = function (employeeCards) {
                 </div>
             </div>
         </main>
-        
     </body>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
     </html>
   `;
   }
-  
+
 
 const generateManager = function (manager) {
     return `
     <div class="col-4 mt-4">
         <div class="card h-100">
             <div class="card-header">
-                <h3>${manager.name}</h3>
-                <h4>Manager</h4><i class="material-icons">content_paste</i>
+                <h3>${escapeHTML(manager.name)}</h3>
+                <h4>Manager</h4>
             </div>
             <div class="card-body">
-                <p class="id">ID: ${manager.id}</p>
-                <p class="email">Email: <a href="mailto:${manager.email}">${manager.email}</a></p>
-                <p class="office">Office Number: ${manager.officeNumber}</p>
+                <p class="id">ID: ${escapeHTML(manager.id)}</p>
+                <p class="email">Email: ${renderEmail(manager.email)}</p>
+                <p class="office">Office Number: ${escapeHTML(manager.officeNumber)}</p>
             </div>
         </div>
     </div>
@@ -60,13 +76,13 @@ const generateIntern = function (intern) {
     <div class="col-4 mt-4">
         <div class="card h-100">
             <div class="card-header">
-                <h3>${intern.name}</h3>
-                <h4>Intern</h4><i class="material-icons">assignment_ind</i>
+                <h3>${escapeHTML(intern.name)}</h3>
+                <h4>Intern</h4>
             </div>
             <div class="card-body">
-                <p class="id">ID: ${intern.id}</p>
-                <p class="email">Email:<a href="mailto:${intern.email}">${intern.email}</a></p>
-                <p class="school">School: ${intern.school}</p>
+                <p class="id">ID: ${escapeHTML(intern.id)}</p>
+                <p class="email">Email: ${renderEmail(intern.email)}</p>
+                <p class="school">School: ${escapeHTML(intern.school)}</p>
             </div>
     </div>
 </div>
@@ -79,13 +95,13 @@ const generateEngineer = function (engineer) {
     <div class="col-4 mt-4">
         <div class="card h-100">
             <div class="card-header">
-                <h3>${engineer.name}</h3>
-                <h4>Engineer</h4><i class="material-icons">laptop_mac</i>
+                <h3>${escapeHTML(engineer.name)}</h3>
+                <h4>Engineer</h4>
             </div>
             <div class="card-body">
-                <p class="id">ID: ${engineer.id}</p>
-                <p class="email">Email: <a href="mailto:${engineer.email}">${engineer.email}</a></p>
-                <p class="github">Github: <a href="https://github.com/${engineer.github}">${engineer.github}</a></p>
+                <p class="id">ID: ${escapeHTML(engineer.id)}</p>
+                <p class="email">Email: ${renderEmail(engineer.email)}</p>
+                <p class="github">Github: <a href="${escapeHTML(githubProfileUrl(engineer.github))}">${escapeHTML(engineer.github)}</a></p>
             </div>
         </div>
     </div>
@@ -93,10 +109,10 @@ const generateEngineer = function (engineer) {
 }
 
 // push array to page 
-generateHTML = (data) => {
+const generateHTML = (data) => {
 
     // array for cards 
-    pageArray = []; 
+    const pageArray = []; 
 
     for (let i = 0; i < data.length; i++) {
         const employee = data[i];

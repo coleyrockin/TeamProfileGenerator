@@ -19,7 +19,7 @@ const mailtoUrl = email => {
 };
 
 const renderEmail = email => {
-    return `<a href="${escapeHTML(mailtoUrl(email)}">${escapeHTML(email)}</a>`;
+    return `<a href="${escapeHTML(mailtoUrl(email))}">${escapeHTML(email)}</a>`;
 };
 
 const generateTeamPage = function (employeeCards) {   
@@ -50,7 +50,7 @@ const generateTeamPage = function (employeeCards) {
     </html>
   `;
   }
-
+  
 
 const generateManager = function (manager) {
     return `

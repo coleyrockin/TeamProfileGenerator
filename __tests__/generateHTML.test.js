@@ -5,7 +5,7 @@ const Intern = require('../lib/Intern');
 
 test('escapes employee fields before rendering profile cards', () => {
     const manager = new Manager('<img src=x onerror=alert(1)>', 1, 'manager@example.com', 101);
-    const engineer = new Engineer('Ada & Grace', 2, 'engineer@example.com', 'bad\"><script>alert(2)</script>');
+    const engineer = new Engineer('Ada & Grace', 2, 'engineer@example.com', 'bad"><script>alert(2)</script>');
     const intern = new Intern('Intern <script>alert(3)</script>', 3, 'intern@example.com', 'SMU <img src=x onerror=alert(4)>');
 
     const html = generateHTML([manager, engineer, intern]);
@@ -14,7 +14,7 @@ test('escapes employee fields before rendering profile cards', () => {
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
     expect(html).toContain('Ada &amp; Grace');
-    expect(html).toContain('bad\"&gt;&lt;script&gt;alert(2)&lt;/script&gt;');
+    expect(html).toContain('bad&quot;&gt;&lt;script&gt;alert(2)&lt;/script&gt;');
     expect(html).toContain('SMU &lt;img src=x onerror=alert(4)&gt;');
     expect(html).toContain('https://github.com/bad%22%3E%3Cscript%3Ealert(2)%3C%2Fscript%3E');
 });

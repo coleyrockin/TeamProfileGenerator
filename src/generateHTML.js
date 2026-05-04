@@ -22,136 +22,97 @@ const renderEmail = email => {
     return `<a href="${escapeHTML(mailtoUrl(email))}">${escapeHTML(email)}</a>`;
 };
 
-const generateTeamPage = function (employeeCards) {   
-    return`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Team Profile</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <header>
-            <nav class="navbar" id="navbar">
-                <span class="navbar-brand mb-0 h1 w-100 text-center" id="navbar-text">Team Profile</span>
-            </nav>
-        </header>
-        <main>
-            <div class="container">
-                <div class="row justify-content-center" id="team-cards">
-                    <!--Team Cards-->
-                    ${employeeCards}
-                </div>
-            </div>
-        </main>
-    </body>
-    </html>
-  `;
-  }
-  
-
-const generateManager = function (manager) {
-    return `
-    <div class="col-4 mt-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h3>${escapeHTML(manager.name)}</h3>
-                <h4>Manager</h4>
-            </div>
-            <div class="card-body">
-                <p class="id">ID: ${escapeHTML(manager.id)}</p>
-                <p class="email">Email: ${renderEmail(manager.email)}</p>
-                <p class="office">Office Number: ${escapeHTML(manager.officeNumber)}</p>
-            </div>
-        </div>
-    </div>
-    `;
-}
-
-// create Intern card 
-const generateIntern = function (intern) {
-    return `
-    <div class="col-4 mt-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h3>${escapeHTML(intern.name)}</h3>
-                <h4>Intern</h4>
-            </div>
-            <div class="card-body">
-                <p class="id">ID: ${escapeHTML(intern.id)}</p>
-                <p class="email">Email: ${renderEmail(intern.email)}</p>
-                <p class="school">School: ${escapeHTML(intern.school)}</p>
-            </div>
-    </div>
-</div>
-    `
+const ROLE_META = {
+    Manager:  { tag: 'M-01', color: '#d9594c' },
+    Engineer: { tag: 'E-02', color: '#3a8a72' },
+    Intern:   { tag: 'I-03', color: '#c79235' }
 };
 
-// create Engineer card
-const generateEngineer = function (engineer) {
+const renderField = (label, value) => `
+                <div class="field">
+                    <dt>${escapeHTML(label)}</dt>
+                    <dd>${value}</dd>
+                </div>`;
+
+const renderCard = (employee, role, extraField) => {
+    const meta = ROLE_META[role];
     return `
-    <div class="col-4 mt-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h3>${escapeHTML(engineer.name)}</h3>
-                <h4>Engineer</h4>
-            </div>
-            <div class="card-body">
-                <p class="id">ID: ${escapeHTML(engineer.id)}</p>
-                <p class="email">Email: ${renderEmail(engineer.email)}</p>
-                <p class="github">Github: <a href="${escapeHTML(githubProfileUrl(engineer.github))}">${escapeHTML(engineer.github)}</a></p>
-            </div>
+        <article class="card" style="--accent: ${meta.color};">
+            <header class="card-head">
+                <span class="card-tag">${meta.tag}</span>
+                <h2 class="card-name">${escapeHTML(employee.name)}</h2>
+                <p class="card-role">${escapeHTML(role)}</p>
+            </header>
+            <dl class="card-body">${renderField('ID', escapeHTML(employee.id))}${renderField('Email', renderEmail(employee.email))}${extraField}
+            </dl>
+        </article>`;
+};
+
+const generateManager = manager =>
+    renderCard(manager, 'Manager', renderField('Office', escapeHTML(manager.officeNumber)));
+
+const generateEngineer = engineer =>
+    renderCard(
+        engineer,
+        'Engineer',
+        renderField(
+            'GitHub',
+            `<a href="${escapeHTML(githubProfileUrl(engineer.github))}">${escapeHTML(engineer.github)}</a>`
+        )
+    );
+
+const generateIntern = intern =>
+    renderCard(intern, 'Intern', renderField('School', escapeHTML(intern.school)));
+
+const ROLE_RENDERERS = {
+    Manager: generateManager,
+    Engineer: generateEngineer,
+    Intern: generateIntern
+};
+
+const generateTeamPage = employeeCards => `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Profile</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="masthead">
+        <div class="masthead-rule"></div>
+        <div class="masthead-row">
+            <span class="masthead-meta">Personnel Dossier</span>
+            <h1 class="masthead-title">Team Profile</h1>
+            <span class="masthead-meta masthead-date">${new Date().toLocaleDateString('en-US', {
+                year: 'numeric', month: 'long', day: '2-digit'
+            })}</span>
         </div>
-    </div>
-    `
-}
+        <div class="masthead-rule"></div>
+    </header>
+    <main class="roster">
+${employeeCards}
+    </main>
+    <footer class="colophon">
+        <span>Generated by Team Profile Generator</span>
+        <span>· · ·</span>
+        <span>Internal Use</span>
+    </footer>
+</body>
+</html>
+`;
 
-// push array to page 
-const generateHTML = (data) => {
+const generateHTML = data => {
+    const cards = data
+        .map(employee => {
+            const role = employee.getRole();
+            const renderer = ROLE_RENDERERS[role];
+            return renderer ? renderer(employee) : '';
+        })
+        .filter(Boolean)
+        .join('\n');
 
-    // array for cards 
-    const pageArray = []; 
+    return generateTeamPage(cards);
+};
 
-    for (let i = 0; i < data.length; i++) {
-        const employee = data[i];
-        const role = employee.getRole(); 
-
-
-        // call manager function
-        if (role === 'Manager') {
-            const managerCard = generateManager(employee);
-
-            pageArray.push(managerCard);
-        }
-
-        // call engineer function
-        if (role === 'Engineer') {
-            const engineerCard = generateEngineer(employee);
-
-            pageArray.push(engineerCard);
-        }
-
-        // call intern function 
-        if (role === 'Intern') {
-            const internCard = generateIntern(employee);
-
-            pageArray.push(internCard);
-        }
-        
-    }
-
-    // joining strings 
-    const employeeCards = pageArray.join('')
-
-    // return to generated page
-    const generateTeam = generateTeamPage(employeeCards); 
-    return generateTeam;
-
-}
-
-
-
-// export to index
 module.exports = generateHTML;

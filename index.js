@@ -1,22 +1,53 @@
 const fs = require('fs');
+const fsp = require('fs').promises;
 const path = require('path');
+const url = require('url');
 const inquirer = require('inquirer');
 
 const generateHTML = require('./src/generateHTML');
 const Manager = require('./lib/Manager');
 const Engineer = require('./lib/Engineer');
 const Intern = require('./lib/Intern');
+const {
+    isRequired,
+    isDigits,
+    isValidEmail,
+    isValidGithubUsername,
+    validateTeamData
+} = require('./lib/validators');
 
-const teamArray = [];
+const DEFAULT_OUTPUT = path.join(__dirname, 'dist', 'index.html');
 
-const isRequired = input => String(input).trim().length > 0;
-const isDigits = input => /^\d+$/.test(String(input).trim());
-const isValidEmail = email =>
-    /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(String(email).trim());
-const isValidGithubUsername = username => {
-    const value = String(username).trim();
-    const pattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
-    return pattern.test(value) && !value.includes('--');
+const HELP = `
+Team Profile Generator
+
+Usage:
+  node index.js                       Run interactive prompts (default)
+  node index.js --input <file.json>   Generate from a saved team JSON
+  node index.js --output <file.html>  Write HTML to a custom path
+  node index.js --help                Show this message
+
+The interactive flow also writes the team to <output-dir>/team.json so it
+can be re-loaded later via --input.
+
+JSON format (flat array, exactly one Manager):
+  [
+    { "role": "Manager",  "name": "...", "id": 1, "email": "...", "officeNumber": 101 },
+    { "role": "Engineer", "name": "...", "id": 2, "email": "...", "github": "octocat" },
+    { "role": "Intern",   "name": "...", "id": 3, "email": "...", "school": "SMU" }
+  ]
+`;
+
+const parseArgs = argv => {
+    const args = { input: null, output: null, help: false };
+    for (let i = 0; i < argv.length; i += 1) {
+        const flag = argv[i];
+        if (flag === '--help' || flag === '-h') args.help = true;
+        else if (flag === '--input' || flag === '-i') args.input = argv[++i];
+        else if (flag === '--output' || flag === '-o') args.output = argv[++i];
+        else throw new Error(`Unknown argument: ${flag}`);
+    }
+    return args;
 };
 
 const validate = (predicate, errorMessage) => input =>
@@ -43,7 +74,7 @@ const emailPrompt = subject => ({
     validate: validate(isValidEmail, 'Please enter a valid email address.')
 });
 
-const addManager = () =>
+const promptManager = () =>
     inquirer
         .prompt([
             namePrompt("the manager's", "Please enter the manager's name."),
@@ -56,11 +87,11 @@ const addManager = () =>
                 validate: validate(isDigits, 'Please enter a numeric office number.')
             }
         ])
-        .then(({ name, id, email, officeNumber }) => {
-            teamArray.push(new Manager(name, id, email, officeNumber));
-        });
+        .then(({ name, id, email, officeNumber }) =>
+            new Manager(name, id, email, officeNumber)
+        );
 
-const addEmployee = () =>
+const promptEmployee = team =>
     inquirer
         .prompt([
             {
@@ -94,35 +125,98 @@ const addEmployee = () =>
             }
         ])
         .then(({ name, id, email, role, github, school, addAnother }) => {
-            if (role === 'Engineer') {
-                teamArray.push(new Engineer(name, id, email, github));
-            } else if (role === 'Intern') {
-                teamArray.push(new Intern(name, id, email, school));
-            }
-
-            return addAnother ? addEmployee() : teamArray;
+            if (role === 'Engineer') team.push(new Engineer(name, id, email, github));
+            else if (role === 'Intern') team.push(new Intern(name, id, email, school));
+            return addAnother ? promptEmployee(team) : team;
         });
 
-const writeFile = (data, outputPath) =>
-    new Promise((resolve, reject) => {
-        fs.mkdir(path.dirname(outputPath), { recursive: true }, mkdirErr => {
-            if (mkdirErr) return reject(mkdirErr);
-            fs.writeFile(outputPath, data, writeErr =>
-                writeErr ? reject(writeErr) : resolve(outputPath)
-            );
-        });
-    });
+const collectTeamInteractively = async () => {
+    const team = [];
+    team.push(await promptManager());
+    return promptEmployee(team);
+};
 
-const OUTPUT_PATH = path.join(__dirname, 'dist', 'index.html');
-
-addManager()
-    .then(addEmployee)
-    .then(team => generateHTML(team))
-    .then(html => writeFile(html, OUTPUT_PATH))
-    .then(outputPath => {
-        console.log(`\n✔ Team profile written to ${path.relative(process.cwd(), outputPath)}`);
-    })
-    .catch(error => {
-        console.error('\n✖ Failed to generate team profile:', error.message || error);
-        process.exitCode = 1;
+const buildTeamFromRecords = records => {
+    const error = validateTeamData(records);
+    if (error) {
+        throw new Error(`Invalid team data: ${error}`);
+    }
+    return records.map(r => {
+        if (r.role === 'Manager')  return new Manager(r.name, r.id, r.email, r.officeNumber);
+        if (r.role === 'Engineer') return new Engineer(r.name, r.id, r.email, r.github);
+        if (r.role === 'Intern')   return new Intern(r.name, r.id, r.email, r.school);
+        return null;
     });
+};
+
+const loadTeamFromFile = async filePath => {
+    const absolute = path.resolve(filePath);
+    let raw;
+    try {
+        raw = await fsp.readFile(absolute, 'utf8');
+    } catch (err) {
+        throw new Error(`Could not read input file ${absolute}: ${err.message}`);
+    }
+    let parsed;
+    try {
+        parsed = JSON.parse(raw);
+    } catch (err) {
+        throw new Error(`Input file ${absolute} is not valid JSON: ${err.message}`);
+    }
+    return buildTeamFromRecords(parsed);
+};
+
+const serializeTeam = team =>
+    JSON.stringify(
+        team.map(employee => {
+            const role = employee.getRole();
+            const base = {
+                role,
+                name: employee.name,
+                id: employee.id,
+                email: employee.email
+            };
+            if (role === 'Manager')  return { ...base, officeNumber: employee.officeNumber };
+            if (role === 'Engineer') return { ...base, github: employee.github };
+            if (role === 'Intern')   return { ...base, school: employee.school };
+            return base;
+        }),
+        null,
+        2
+    );
+
+const writeFile = async (data, outputPath) => {
+    await fsp.mkdir(path.dirname(outputPath), { recursive: true });
+    await fsp.writeFile(outputPath, data);
+    return outputPath;
+};
+
+const run = async () => {
+    const args = parseArgs(process.argv.slice(2));
+
+    if (args.help) {
+        console.log(HELP);
+        return;
+    }
+
+    const team = args.input
+        ? await loadTeamFromFile(args.input)
+        : await collectTeamInteractively();
+
+    const html = generateHTML(team);
+    const outputPath = path.resolve(args.output || DEFAULT_OUTPUT);
+    const teamJsonPath = path.join(path.dirname(outputPath), 'team.json');
+
+    await writeFile(html, outputPath);
+    await writeFile(serializeTeam(team), teamJsonPath);
+
+    const fileUrl = url.pathToFileURL(outputPath).href;
+    console.log(`\n✔ Team profile written to ${path.relative(process.cwd(), outputPath)}`);
+    console.log(`  Open: ${fileUrl}`);
+    console.log(`  Saved team JSON → ${path.relative(process.cwd(), teamJsonPath)} (re-run with --input)`);
+};
+
+run().catch(error => {
+    console.error('\n✖ Failed to generate team profile:', error.message || error);
+    process.exitCode = 1;
+});

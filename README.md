@@ -38,7 +38,7 @@ npm install
 npm start
 ```
 
-Answer the prompts. The generated page is written to `dist/index.html` — open it directly in a browser.
+Answer the prompts. The generated page is written to `dist/index.html` — open the `file://` URL printed at the end. The team is also persisted to `dist/team.json` so you can re-run without re-typing.
 
 ### Scripts
 
@@ -47,18 +47,54 @@ Answer the prompts. The generated page is written to `dist/index.html` — open 
 | `npm start`   | Run the interactive CLI                      |
 | `npm test`    | Run the Jest test suite                      |
 
+### CLI Flags
+
+| Flag                          | Purpose                                                       |
+|-------------------------------|---------------------------------------------------------------|
+| `--help`, `-h`                | Show usage                                                    |
+| `--input <file.json>`, `-i`   | Generate from a saved team JSON (skips all prompts)           |
+| `--output <file.html>`, `-o`  | Write HTML to a custom path (default: `dist/index.html`)      |
+
+```bash
+# Non-interactive run from a previously saved team
+node index.js --input dist/team.json
+
+# Custom output location
+node index.js --output ~/Desktop/team.html
+```
+
+### JSON Input Format
+
+Flat array. Exactly one Manager record is required.
+
+```json
+[
+  { "role": "Manager",  "name": "Alex Reyes",  "id": 1, "email": "alex@example.com",  "officeNumber": 412 },
+  { "role": "Engineer", "name": "Priya Shah",  "id": 2, "email": "priya@example.com", "github": "priyacodes" },
+  { "role": "Intern",   "name": "Noor Patel",  "id": 3, "email": "noor@example.com",  "school": "UT Austin" }
+]
+```
+
+Validation runs before any classes are constructed and reports the first failing record with its index.
+
 ## Project Structure
 
 ```
 TeamProfileGenerator/
-├── __tests__/             # Jest tests (Employee classes + HTML generator)
+├── __tests__/             # Jest tests (classes + HTML generator + validators)
 ├── dist/
 │   ├── index.html         # Generated team roster (overwritten each run)
-│   └── style.css          # Self-contained stylesheet
-├── lib/                   # Employee, Manager, Engineer, Intern classes
+│   ├── style.css          # Self-contained stylesheet
+│   └── team.json          # Persisted team data (re-run via --input)
+├── lib/
+│   ├── Employee.js        # Base class
+│   ├── Manager.js         # role: Manager
+│   ├── Engineer.js        # role: Engineer
+│   ├── Intern.js          # role: Intern
+│   └── validators.js      # Reusable validators + record/team validation
 ├── src/
 │   └── generateHTML.js    # HTML template + escape/URL-encode helpers
-├── index.js               # CLI entry point (prompts + validation + write)
+├── index.js               # CLI entry (arg parser, prompts, JSON loader, writer)
 └── package.json
 ```
 
@@ -81,17 +117,16 @@ The Jest test `escapes employee fields before rendering profile cards` includes 
 
 ## Known Limitations
 
-- CLI only — no web form, no edit-after-add, no remove
-- Roster is regenerated from scratch each run (no append, no persistence)
+- CLI only — no web form, no edit-after-add, no remove (edit the generated `team.json` and re-run)
 - Role set is fixed (Manager, Engineer, Intern)
-- One manager per team
+- Exactly one manager per team
 
 ## Future Improvements
 
-- `--input team.json` flag for non-interactive runs
-- Persist the team to a JSON file and append/edit instead of overwrite
-- Print the output path with an absolute file URL the user can ⌘-click
-- Optional `--theme` flag to swap palette presets
+- `--theme <name>` flag to swap palette presets
+- `--append` mode to add to an existing `team.json` interactively
+- Optional avatar/photo field per employee
+- ESM migration so we can use Inquirer 9+
 
 ## Author
 

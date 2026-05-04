@@ -1,0 +1,23 @@
+[
+  {
+    "role": "Manager",
+    "name": "Sample Manager",
+    "id": 1,
+    "email": "manager@example.com",
+    "officeNumber": 101
+  },
+  {
+    "role": "Engineer",
+    "name": "Sample Engineer",
+    "id": 2,
+    "email": "engineer@example.com",
+    "github": "example-engineer"
+  },
+  {
+    "role": "Intern",
+    "name": "Sample Intern",
+    "id": 3,
+    "email": "intern@example.com",
+    "school": "Example University"
+  }
+]

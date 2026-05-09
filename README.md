@@ -103,7 +103,7 @@ TeamProfileGenerator/
 Treat any field as untrusted user input. The HTML generator:
 
 - Escapes `& < > " '` in every text field before insertion (`escapeHTML`)
-- URL-encodes the email and GitHub-username portions of `mailto:` and `https://github.com/...` links
+- URL-encodes email and GitHub username fields before generating profile links
 - Validates the GitHub username against GitHub's published pattern (1–39 chars, alnum + hyphen, no leading/trailing/double hyphen) before accepting it
 
 The Jest test `escapes employee fields before rendering profile cards` includes payloads such as `<img src=x onerror=alert(1)>` and `<script>alert()</script>` to verify the escaping holds.
